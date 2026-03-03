@@ -192,7 +192,11 @@
           <div>
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:10px; flex-wrap:wrap;">
               <div style="font-weight:900;"><i class="bi bi-sun"></i> Hoje ({{ today|date:"d/m/Y" }})</div>
-              <a class="sw-badge" href="{% url 'admin:agendamento_agendamento_changelist' %}?horario__data__exact={{ today|date:'Y-m-d' }}">Abrir lista</a>
+              Atalhos:
+              <a href="{% url request.current_app|add:':agendamento_servico_changelist' %}">Serviços</a> ·
+              <a href="{% url request.current_app|add:':agendamento_planomensal_changelist' %}">Planos</a> ·
+              <a href="{% url request.current_app|add:':agendamento_despesa_changelist' %}">Despesas</a> ·
+              <a href="{% url request.current_app|add:':agendamento_mensagem_changelist' %}">Mensagens</a>
             </div>
             <table class="sw-table">
               <thead><tr><th>Hora</th><th>Cliente</th><th>Serviços</th><th>Status</th><th>Total</th></tr></thead>
