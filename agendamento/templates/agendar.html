@@ -163,7 +163,7 @@
                 <div class="section-sub">Você pode selecionar mais de um serviço.</div>
                 <div class="chip-grid mt-2" id="servicosGrid">
                   {% for s in servicos %}
-                    <label class="chip" data-preco="{{ s.valor }}" data-duracao="{{ s.duracao_min }}">
+                    <label class="chip" data-preco="{{ s.valor|unlocalize }}" data-duracao="{{ s.duracao_min }}">
                       <input type="checkbox" name="servicos" value="{{ s.id }}">
                       <span class="dot"></span>
                       <span>
@@ -183,7 +183,7 @@
                 <select name="plano_mensal" class="form-select mt-2" id="planoMensal">
                   <option value="">Sem plano mensal</option>
                   {% for p in planos %}
-                    <option value="{{ p.id }}" data-preco="{{ p.valor_mensal }}">
+                    <option value="{{ p.id }}" data-preco="{{ p.valor_mensal|unlocalize }}">
                       {{ p.nome }} — R$ {{ p.valor_mensal|floatformat:2 }}/mês
                       {% if p.limite_visitas_mes == 0 %} (ilimitado){% else %} ({{ p.limite_visitas_mes }} visitas/mês){% endif %}
                     </option>
@@ -255,8 +255,20 @@
   </div>
 
   <script>
+    // Converte valores com vírgula (pt-BR) para número JS
+    // Ex: "99,90" -> 99.90 | "1.234,56" -> 1234.56
+    const toNumberBR = (v) => {
+      if (v === null || v === undefined) return 0;
+      if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+      const s = String(v).trim();
+      if (!s) return 0;
+      const norm = s.replace(/\./g, '').replace(',', '.');
+      const n = Number(norm);
+      return Number.isFinite(n) ? n : 0;
+    };
+
     const money = (v) => {
-      const n = Number(v || 0);
+      const n = toNumberBR(v);
       return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
     }
 
@@ -299,12 +311,12 @@
       chips.forEach(chip => {
         const input = chip.querySelector('input');
         if (input?.checked) {
-          sTotal += Number(chip.getAttribute('data-preco') || 0);
+          sTotal += toNumberBR(chip.getAttribute('data-preco'));
           dur += Number(chip.getAttribute('data-duracao') || 0);
         }
       })
       const opt = planoSelect?.selectedOptions?.[0];
-      const pTotal = opt ? Number(opt.getAttribute('data-preco') || 0) : 0;
+      const pTotal = opt ? toNumberBR(opt.getAttribute('data-preco')) : 0;
       document.getElementById('sumServ').textContent = money(sTotal);
       document.getElementById('sumPlan').textContent = money(pTotal);
       document.getElementById('sumTotal').textContent = money(sTotal + pTotal);
