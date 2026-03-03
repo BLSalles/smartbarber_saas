@@ -2,56 +2,10 @@ from __future__ import annotations
 
 from django.contrib import admin
 from django.db.models import Sum
+from django.template.response import TemplateResponse
 
 from smartwash.admin_site import admin_site
-from django.template.response import TemplateResponse
-from .models import (
-    Agendamento,
-    Assinatura,
-    Despesa,
-    Horario,
-    Mensagem,
-    PlanoMensal,
-    Servico,
-)
-
-
-@admin.register(Servico, site=admin_site)
-class ServicoAdmin(admin.ModelAdmin):
-    list_display = ("nome", "categoria", "duracao_min", "valor", "ativo")
-    list_filter = ("categoria", "ativo")
-    search_fields = ("nome",)
-
-
-@admin.register(PlanoMensal, site=admin_site)
-class PlanoMensalAdmin(admin.ModelAdmin):
-    list_display = ("nome", "valor_mensal", "limite_visitas_mes", "ativo")
-    list_filter = ("ativo",)
-    search_fields = ("nome",)
-
-
-@admin.register(Assinatura, site=admin_site)
-class AssinaturaAdmin(admin.ModelAdmin):
-    list_display = ("criado_em", "nome", "whatsapp", "plano", "inicio", "ativa")
-    list_filter = ("ativa", "plano")
-    search_fields = ("nome", "email", "whatsapp", "cpf")
-    date_hierarchy = "criado_em"
-
-
-@admin.register(Despesa, site=admin_site)
-class DespesaAdmin(admin.ModelAdmin):
-    list_display = ("data", "descricao", "categoria", "valor")
-    list_filter = ("categoria",)
-    search_fields = ("descricao",)
-    date_hierarchy = "data"
-
-
-@admin.register(Mensagem, site=admin_site)
-class MensagemAdmin(admin.ModelAdmin):
-    list_display = ("criado_em", "nome", "assunto", "lida")
-    list_filter = ("lida",)
-    search_fields = ("nome", "email", "whatsapp", "assunto", "conteudo")
-    date_hierarchy = "criado_em"
+from .models import Agendamento, Assinatura, Despesa, Mensagem, PlanoMensal, Servico
 
 
 @admin.register(Agendamento, site=admin_site)
@@ -71,7 +25,6 @@ class AgendamentoAdmin(admin.ModelAdmin):
     list_filter = ("status_pagamento", "forma_pagamento", "plano_mensal")
     date_hierarchy = "criado_em"
     search_fields = ("nome", "email", "whatsapp", "cpf")
-
     filter_horizontal = ("servicos",)
 
     @admin.display(description="Serviços")
@@ -85,35 +38,42 @@ class AgendamentoAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         """Garante total coerente ao salvar pelo admin."""
         super().save_model(request, obj, form, change)
-        # M2M só existe após salvar; recalcula e atualiza
         try:
-            total = obj.calcular_total()
-            if obj.total != total:
-                Agendamento.objects.filter(pk=obj.pk).update(total=total)
+            total_calc = obj.calcular_total()
+            if obj.total != total_calc:
+                Agendamento.objects.filter(pk=obj.pk).update(total=total_calc)
         except Exception:
             pass
 
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context=extra_context)
 
-        # Se foi POST e o admin decidiu redirecionar, não existe context_data
+        # POST geralmente redireciona -> HttpResponseRedirect (sem context_data)
         if not isinstance(response, TemplateResponse):
             return response
 
-        # A partir daqui é seguro mexer no contexto
-        try:
-            context = response.context_data
-        except Exception:
+        if not hasattr(response, "context_data") or response.context_data is None:
             return response
 
-        # ---- seu cálculo aqui ----
-        # total = ...
-        context["total_ganhos"] = total
-        # context["outros_campos"] = ...
+        context = response.context_data
+
+        # QuerySet com os filtros que o admin aplicou (status_pagamento, plano, busca etc.)
+        cl = context.get("cl")
+        qs = cl.queryset if cl else self.get_queryset(request)
+
+        # Somatórios
+        total_geral = (qs.aggregate(v=Sum("total"))["v"] or 0)
+
+        receita_paga = (
+            qs.filter(status_pagamento="PAGO").aggregate(v=Sum("total"))["v"] or 0
+        )
+        receita_pendente = (
+            qs.filter(status_pagamento="PENDENTE").aggregate(v=Sum("total"))["v"] or 0
+        )
+
+        # Injeta no contexto para usar no template (seu dashboard/custom)
+        context["total_ganhos"] = total_geral
+        context["receita_paga"] = receita_paga
+        context["receita_pendente"] = receita_pendente
 
         return response
-
-
-# OBS:
-# O model Horario não é registrado no Admin de propósito.
-# Os horários são gerados via comando "gerar_horarios".
