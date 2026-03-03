@@ -161,9 +161,13 @@
               <div class="col-12">
                 <div class="section-title" style="font-size:16px;"><i class="bi bi-scissors"></i> Serviços</div>
                 <div class="section-sub">Você pode selecionar mais de um serviço.</div>
+
                 <div class="chip-grid mt-2" id="servicosGrid">
                   {% for s in servicos %}
-                    <label class="chip" data-preco="{{ s.valor|unlocalize }}" data-duracao="{{ s.duracao_min }}">
+                    <!-- data-preco NUMÉRICO (ex: 35.00) -->
+                    <label class="chip"
+                           data-preco="{{ s.valor|unlocalize }}"
+                           data-duracao="{{ s.duracao_min }}">
                       <input type="checkbox" name="servicos" value="{{ s.id }}">
                       <span class="dot"></span>
                       <span>
@@ -180,6 +184,7 @@
               <div class="col-12">
                 <div class="section-title" style="font-size:16px;"><i class="bi bi-star"></i> Plano mensal (opcional)</div>
                 <div class="section-sub">Se você escolher um plano, ele entra no valor total.</div>
+
                 <select name="plano_mensal" class="form-select mt-2" id="planoMensal">
                   <option value="" data-preco-centavos="0">Sem plano mensal</option>
                   {% for p in planos %}
@@ -195,6 +200,7 @@
                 <div class="section-title" style="font-size:16px;"><i class="bi bi-clock-history"></i> Horários disponíveis</div>
                 <div class="section-sub">Selecione um horário para concluir o agendamento.</div>
                 <input type="hidden" name="horario" id="horarioInput" required>
+
                 <div class="slot-grid mt-2" id="slots">
                   {% for h in horarios %}
                     <div class="slot" data-id="{{ h.id }}">{{ h.hora|time:"H:i" }}</div>
@@ -207,6 +213,7 @@
               <div class="col-12 col-md-6">
                 <div class="section-title" style="font-size:16px;"><i class="bi bi-credit-card"></i> Pagamento</div>
                 <div class="section-sub">Selecione como prefere pagar.</div>
+
                 <div class="mt-2 d-grid gap-2">
                   <label class="btn btn-outline w-100 text-start">
                     <input class="form-check-input me-2" type="radio" name="forma_pagamento" value="PIX" checked>
@@ -226,6 +233,7 @@
               <div class="col-12 col-md-6">
                 <div class="section-title" style="font-size:16px;"><i class="bi bi-receipt"></i> Resumo</div>
                 <div class="section-sub">Confira o total estimado antes de finalizar.</div>
+
                 <div class="summary mt-2">
                   <div class="line"><span class="muted">Serviços</span><span id="sumServ">R$ 0,00</span></div>
                   <div class="line"><span class="muted">Plano mensal</span><span id="sumPlan">R$ 0,00</span></div>
@@ -255,33 +263,18 @@
   </div>
 
   <script>
-    // Converte valores com vírgula (pt-BR) para número JS
-    // Ex: "99,90" -> 99.90 | "1.234,56" -> 1234.56
-    const toNumberBR = (v) => {
-      if (v === null || v === undefined) return 0;
-      if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
-      const s = String(v).trim();
-      if (!s) return 0;
-      const norm = s.replace(/\./g, '').replace(',', '.');
-      const n = Number(norm);
-      return Number.isFinite(n) ? n : 0;
-    };
+    const chips = Array.from(document.querySelectorAll('#servicosGrid .chip'));
+    const planoSelect = document.getElementById('planoMensal');
 
-    const money = (v) => {
-      const n = typeof v === 'number' ? v : toNumberBR(v);
-      return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
-    };
+    const fmt = (n) => (Number(n) || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
 
     // Chips (serviços)
-    const chips = Array.from(document.querySelectorAll('#servicosGrid .chip'));
     chips.forEach(chip => {
       const input = chip.querySelector('input');
       const sync = () => chip.classList.toggle('active', input.checked);
 
       chip.addEventListener('click', (e) => {
-        // Como o chip é um <label>, o browser alterna o checkbox automaticamente.
-        // Se também alternarmos via JS, ele "desmarca" na sequência e parece que não funciona.
-        // Então prevenimos o default e controlamos 100% via JS.
+        // como é <label>, prevenimos o toggle automático para não dar "marca/desmarca"
         e.preventDefault();
         input.checked = !input.checked;
         sync();
@@ -303,29 +296,29 @@
       });
     });
 
-    // Plan
-    const planoSelect = document.getElementById('planoMensal');
+    // Plano mensal
     planoSelect?.addEventListener('change', recalc);
 
     function recalc(){
-      let sTotal = 0;
+      let servTotal = 0;
       let dur = 0;
 
       chips.forEach(chip => {
         const input = chip.querySelector('input');
         if (input?.checked) {
-          sTotal += toNumberBR(chip.getAttribute('data-preco'));
+          // data-preco já é numérico (ex: 35.00)
+          servTotal += Number(chip.getAttribute('data-preco') || 0);
           dur += Number(chip.getAttribute('data-duracao') || 0);
         }
       });
 
       const opt = planoSelect?.selectedOptions?.[0];
-      const pCent = opt ? Number(opt.dataset.precoCentavos || 0) : 0;
-      const pTotal = pCent / 100;
+      const pCent = opt ? Number(opt.dataset.precoCentavos || 0) : 0; // <-- aqui é o plano
+      const planTotal = pCent / 100;
 
-      document.getElementById('sumServ').textContent = money(sTotal);
-      document.getElementById('sumPlan').textContent = money(pTotal);
-      document.getElementById('sumTotal').textContent = money(sTotal + pTotal);
+      document.getElementById('sumServ').textContent = fmt(servTotal);
+      document.getElementById('sumPlan').textContent = fmt(planTotal);
+      document.getElementById('sumTotal').textContent = fmt(servTotal + planTotal);
       document.getElementById('sumDur').textContent = `${dur} min`;
     }
 
