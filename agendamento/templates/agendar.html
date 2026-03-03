@@ -47,7 +47,17 @@
       box-shadow:0 0 0 4px rgba(34,211,238,.12);
     }
 
-    .chip-grid{ display:flex; flex-wrap:wrap; gap:10px; }
+    
+    /* placeholders visíveis no tema escuro */
+    .form-control::placeholder, .form-select::placeholder, textarea.form-control::placeholder{
+      color: rgba(148,163,184,.85);
+      opacity: 1;
+    }
+    .form-control::-ms-input-placeholder, textarea.form-control::-ms-input-placeholder{
+      color: rgba(148,163,184,.85);
+    }
+
+.chip-grid{ display:flex; flex-wrap:wrap; gap:10px; }
     .chip{
       cursor:pointer; user-select:none;
       padding:10px 12px; border-radius:14px;
@@ -93,7 +103,19 @@
     .summary .total{ font-size:18px; font-weight:900; }
 
     .alert{ border-radius:14px; }
-  </style>
+  
+    /* alerts visíveis no tema escuro */
+    .alert-danger{
+      background: rgba(220,53,69,.18);
+      border: 1px solid rgba(220,53,69,.35);
+      color: #fecaca;
+    }
+    .alert-success{
+      background: rgba(25,135,84,.18);
+      border: 1px solid rgba(25,135,84,.35);
+      color: #bbf7d0;
+    }
+</style>
 </head>
 
 <body>
@@ -135,8 +157,7 @@
                 <label class="form-label">Data</label>
                 <input type="date" name="data" class="form-control" required value="{{ request.GET.data }}"
                   onchange="window.location='?data=' + this.value">
-                <div class="section-sub">Dica: escolha a data para listar os horários disponíveis. Horários passados não aparecem.</div>
-              </div>
+</div>
 
               <div class="col-12 col-md-4">
                 <label class="form-label">Nome</label>
@@ -193,16 +214,16 @@
 
               <div class="col-12">
                 <div class="section-title" style="font-size:16px;"><i class="bi bi-clock-history"></i> Horários disponíveis</div>
-                <div class="section-sub">Lista de horários disponíveis (não mostra horários já agendados ou que já passaram).</div>
-                <input type="hidden" name="horario" id="horarioInput" required>
+                <div class="section-sub">Selecione um horário para concluir o agendamento.</div>
 
-                <div class="slot-list mt-2" id="slots">
+                <select name="horario" id="horarioSelect" class="form-select mt-2" required>
+                  <option value="" selected disabled>Selecione um horário</option>
                   {% for h in horarios %}
-                    <div class="slot" data-id="{{ h.id }}">{{ h.hora|time:"H:i" }}</div>
+                    <option value="{{ h.id }}">{{ h.hora|time:"H:i" }}</option>
                   {% empty %}
-                    <div class="section-sub">Escolha uma data futura/hoje para ver os horários disponíveis.</div>
+                    <option value="" disabled>Nenhum horário disponível para esta data.</option>
                   {% endfor %}
-                </div>
+                </select>
               </div>
 
               <div class="col-12 col-md-6">
@@ -276,17 +297,6 @@
 
       input.addEventListener('change', () => { sync(); recalc(); });
       sync();
-    });
-
-    // Slots
-    const slotEls = Array.from(document.querySelectorAll('#slots .slot'));
-    const horarioInput = document.getElementById('horarioInput');
-    slotEls.forEach(el => {
-      el.addEventListener('click', () => {
-        slotEls.forEach(x => x.classList.remove('selected'));
-        el.classList.add('selected');
-        horarioInput.value = el.getAttribute('data-id');
-      });
     });
 
     // Plano mensal

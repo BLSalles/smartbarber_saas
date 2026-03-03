@@ -66,6 +66,7 @@ class AgendamentoAdmin(admin.ModelAdmin):
         "total",
         "horario",
     )
+    list_editable = ("status_pagamento",)
     list_filter = ("status_pagamento", "forma_pagamento", "plano_mensal")
     date_hierarchy = "criado_em"
     search_fields = ("nome", "email", "whatsapp", "cpf")
