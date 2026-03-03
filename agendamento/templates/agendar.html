@@ -1,4 +1,4 @@
-{% load static %}
+{% load static l10n %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -181,9 +181,9 @@
                 <div class="section-title" style="font-size:16px;"><i class="bi bi-star"></i> Plano mensal (opcional)</div>
                 <div class="section-sub">Se você escolher um plano, ele entra no valor total.</div>
                 <select name="plano_mensal" class="form-select mt-2" id="planoMensal">
-                  <option value="">Sem plano mensal</option>
+                  <option value="" data-preco-centavos="0">Sem plano mensal</option>
                   {% for p in planos %}
-                    <option value="{{ p.id }}" data-preco="{{ p.valor_mensal|unlocalize }}">
+                    <option value="{{ p.id }}" data-preco-centavos="{{ p.valor_mensal_centavos }}">
                       {{ p.nome }} — R$ {{ p.valor_mensal|floatformat:2 }}/mês
                       {% if p.limite_visitas_mes == 0 %} (ilimitado){% else %} ({{ p.limite_visitas_mes }} visitas/mês){% endif %}
                     </option>
@@ -268,15 +268,16 @@
     };
 
     const money = (v) => {
-      const n = toNumberBR(v);
+      const n = typeof v === 'number' ? v : toNumberBR(v);
       return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
-    }
+    };
 
     // Chips (serviços)
     const chips = Array.from(document.querySelectorAll('#servicosGrid .chip'));
     chips.forEach(chip => {
       const input = chip.querySelector('input');
       const sync = () => chip.classList.toggle('active', input.checked);
+
       chip.addEventListener('click', (e) => {
         // Como o chip é um <label>, o browser alterna o checkbox automaticamente.
         // Se também alternarmos via JS, ele "desmarca" na sequência e parece que não funciona.
@@ -286,6 +287,7 @@
         sync();
         recalc();
       });
+
       input.addEventListener('change', () => { sync(); recalc(); });
       sync();
     });
@@ -298,8 +300,8 @@
         slotEls.forEach(x => x.classList.remove('selected'));
         el.classList.add('selected');
         horarioInput.value = el.getAttribute('data-id');
-      })
-    })
+      });
+    });
 
     // Plan
     const planoSelect = document.getElementById('planoMensal');
@@ -308,20 +310,25 @@
     function recalc(){
       let sTotal = 0;
       let dur = 0;
+
       chips.forEach(chip => {
         const input = chip.querySelector('input');
         if (input?.checked) {
           sTotal += toNumberBR(chip.getAttribute('data-preco'));
           dur += Number(chip.getAttribute('data-duracao') || 0);
         }
-      })
+      });
+
       const opt = planoSelect?.selectedOptions?.[0];
-      const pTotal = opt ? toNumberBR(opt.getAttribute('data-preco')) : 0;
+      const pCent = opt ? Number(opt.dataset.precoCentavos || 0) : 0;
+      const pTotal = pCent / 100;
+
       document.getElementById('sumServ').textContent = money(sTotal);
       document.getElementById('sumPlan').textContent = money(pTotal);
       document.getElementById('sumTotal').textContent = money(sTotal + pTotal);
       document.getElementById('sumDur').textContent = `${dur} min`;
     }
+
     recalc();
   </script>
 
