@@ -62,16 +62,16 @@
     .chip .name{ font-weight:700; }
     .chip .meta{ font-size:12px; color:#94a3b8; }
 
-    .slot-grid{ display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; }
-    @media (min-width: 768px){ .slot-grid{ grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-
+    /* Horários em lista (1 coluna) */
+    .slot-list{ display:flex; flex-direction:column; gap:10px; }
     .slot{
       padding:12px; border-radius:14px;
       background:#1e293b; border:1px solid rgba(148,163,184,.18);
       cursor:pointer; text-align:center; transition:.15s;
+      font-weight:800;
     }
     .slot:hover{ border-color: rgba(34,211,238,.55); }
-    .slot.selected{ background:#22d3ee; color:#0f172a; border-color:#22d3ee; font-weight:800; }
+    .slot.selected{ background:#22d3ee; color:#0f172a; border-color:#22d3ee; }
 
     .btn-primary{
       background:#22d3ee; border:none; color:#0f172a; font-weight:800;
@@ -135,7 +135,7 @@
                 <label class="form-label">Data</label>
                 <input type="date" name="data" class="form-control" required value="{{ request.GET.data }}"
                   onchange="window.location='?data=' + this.value">
-                <div class="section-sub">Dica: escolha a data para listar os horários disponíveis.</div>
+                <div class="section-sub">Dica: escolha a data para listar os horários disponíveis. Horários passados não aparecem.</div>
               </div>
 
               <div class="col-12 col-md-4">
@@ -161,13 +161,9 @@
               <div class="col-12">
                 <div class="section-title" style="font-size:16px;"><i class="bi bi-scissors"></i> Serviços</div>
                 <div class="section-sub">Você pode selecionar mais de um serviço.</div>
-
                 <div class="chip-grid mt-2" id="servicosGrid">
                   {% for s in servicos %}
-                    <!-- data-preco NUMÉRICO (ex: 35.00) -->
-                    <label class="chip"
-                           data-preco="{{ s.valor|unlocalize }}"
-                           data-duracao="{{ s.duracao_min }}">
+                    <label class="chip" data-preco="{{ s.valor|unlocalize }}" data-duracao="{{ s.duracao_min }}">
                       <input type="checkbox" name="servicos" value="{{ s.id }}">
                       <span class="dot"></span>
                       <span>
@@ -184,7 +180,6 @@
               <div class="col-12">
                 <div class="section-title" style="font-size:16px;"><i class="bi bi-star"></i> Plano mensal (opcional)</div>
                 <div class="section-sub">Se você escolher um plano, ele entra no valor total.</div>
-
                 <select name="plano_mensal" class="form-select mt-2" id="planoMensal">
                   <option value="" data-preco-centavos="0">Sem plano mensal</option>
                   {% for p in planos %}
@@ -198,14 +193,14 @@
 
               <div class="col-12">
                 <div class="section-title" style="font-size:16px;"><i class="bi bi-clock-history"></i> Horários disponíveis</div>
-                <div class="section-sub">Selecione um horário para concluir o agendamento.</div>
+                <div class="section-sub">Lista de horários disponíveis (não mostra horários já agendados ou que já passaram).</div>
                 <input type="hidden" name="horario" id="horarioInput" required>
 
-                <div class="slot-grid mt-2" id="slots">
+                <div class="slot-list mt-2" id="slots">
                   {% for h in horarios %}
                     <div class="slot" data-id="{{ h.id }}">{{ h.hora|time:"H:i" }}</div>
                   {% empty %}
-                    <div class="section-sub">Escolha uma data para ver os horários.</div>
+                    <div class="section-sub">Escolha uma data futura/hoje para ver os horários disponíveis.</div>
                   {% endfor %}
                 </div>
               </div>
@@ -213,7 +208,6 @@
               <div class="col-12 col-md-6">
                 <div class="section-title" style="font-size:16px;"><i class="bi bi-credit-card"></i> Pagamento</div>
                 <div class="section-sub">Selecione como prefere pagar.</div>
-
                 <div class="mt-2 d-grid gap-2">
                   <label class="btn btn-outline w-100 text-start">
                     <input class="form-check-input me-2" type="radio" name="forma_pagamento" value="PIX" checked>
@@ -233,7 +227,6 @@
               <div class="col-12 col-md-6">
                 <div class="section-title" style="font-size:16px;"><i class="bi bi-receipt"></i> Resumo</div>
                 <div class="section-sub">Confira o total estimado antes de finalizar.</div>
-
                 <div class="summary mt-2">
                   <div class="line"><span class="muted">Serviços</span><span id="sumServ">R$ 0,00</span></div>
                   <div class="line"><span class="muted">Plano mensal</span><span id="sumPlan">R$ 0,00</span></div>
@@ -313,7 +306,7 @@
       });
 
       const opt = planoSelect?.selectedOptions?.[0];
-      const pCent = opt ? Number(opt.dataset.precoCentavos || 0) : 0; // <-- aqui é o plano
+      const pCent = opt ? Number(opt.dataset.precoCentavos || 0) : 0;
       const planTotal = pCent / 100;
 
       document.getElementById('sumServ').textContent = fmt(servTotal);

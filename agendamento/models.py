@@ -22,6 +22,15 @@ class Servico(models.Model):
     valor = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     ativo = models.BooleanField(default=True)
 
+
+    @property
+    def valor_mensal_centavos(self) -> int:
+        """Valor mensal em centavos (para usar em data-attributes sem problema de locale)."""
+        try:
+            return int((self.valor_mensal or Decimal('0.00')) * 100)
+        except Exception:
+            return 0
+
     def __str__(self) -> str:
         return f"{self.nome} (R$ {self.valor})"
 
@@ -36,6 +45,15 @@ class PlanoMensal(models.Model):
     limite_visitas_mes = models.PositiveIntegerField(default=0)
     ativo = models.BooleanField(default=True)
 
+
+    @property
+    def valor_mensal_centavos(self) -> int:
+        """Valor mensal em centavos (para usar em data-attributes sem problema de locale)."""
+        try:
+            return int((self.valor_mensal or Decimal('0.00')) * 100)
+        except Exception:
+            return 0
+
     def __str__(self) -> str:
         return f"{self.nome} (R$ {self.valor_mensal}/mês)"
 
@@ -49,6 +67,15 @@ class Horario(models.Model):
 
     class Meta:
         unique_together = ("data", "hora")
+
+
+    @property
+    def valor_mensal_centavos(self) -> int:
+        """Valor mensal em centavos (para usar em data-attributes sem problema de locale)."""
+        try:
+            return int((self.valor_mensal or Decimal('0.00')) * 100)
+        except Exception:
+            return 0
 
     def __str__(self) -> str:
         return f"{self.data} {self.hora}"
@@ -73,6 +100,15 @@ class Assinatura(models.Model):
             models.Index(fields=["whatsapp", "ativa"]),
             models.Index(fields=["email", "ativa"]),
         ]
+
+
+    @property
+    def valor_mensal_centavos(self) -> int:
+        """Valor mensal em centavos (para usar em data-attributes sem problema de locale)."""
+        try:
+            return int((self.valor_mensal or Decimal('0.00')) * 100)
+        except Exception:
+            return 0
 
     def __str__(self) -> str:
         return f"{self.nome} - {self.plano.nome}"
@@ -112,6 +148,15 @@ class Agendamento(models.Model):
     observacoes = models.TextField(blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
+
+    @property
+    def valor_mensal_centavos(self) -> int:
+        """Valor mensal em centavos (para usar em data-attributes sem problema de locale)."""
+        try:
+            return int((self.valor_mensal or Decimal('0.00')) * 100)
+        except Exception:
+            return 0
+
     def __str__(self) -> str:
         return f"{self.nome} - {self.horario.data} {self.horario.hora}"
 
@@ -141,6 +186,15 @@ class Despesa(models.Model):
     observacoes = models.TextField(blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
+
+    @property
+    def valor_mensal_centavos(self) -> int:
+        """Valor mensal em centavos (para usar em data-attributes sem problema de locale)."""
+        try:
+            return int((self.valor_mensal or Decimal('0.00')) * 100)
+        except Exception:
+            return 0
+
     def __str__(self) -> str:
         return f"{self.descricao} (R$ {self.valor})"
 
@@ -155,6 +209,15 @@ class Mensagem(models.Model):
     conteudo = models.TextField()
     lida = models.BooleanField(default=False)
     criado_em = models.DateTimeField(auto_now_add=True)
+
+
+    @property
+    def valor_mensal_centavos(self) -> int:
+        """Valor mensal em centavos (para usar em data-attributes sem problema de locale)."""
+        try:
+            return int((self.valor_mensal or Decimal('0.00')) * 100)
+        except Exception:
+            return 0
 
     def __str__(self) -> str:
         return f"{self.nome} - {self.assunto or 'Mensagem'}"

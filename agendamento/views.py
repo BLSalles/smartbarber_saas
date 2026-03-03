@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.utils.dateparse import parse_date
+from django.utils import timezone
 
 from .models import Agendamento, Assinatura, Horario, PlanoMensal, Servico
 
@@ -18,7 +19,16 @@ def agendar(request):
 
     horarios = Horario.objects.none()
     if data:
-        horarios = Horario.objects.filter(data=data, disponivel=True).order_by("hora")
+        today = timezone.localdate()
+        now_t = timezone.localtime().time()
+
+        if data < today:
+            horarios = Horario.objects.none()
+        else:
+            qs_h = Horario.objects.filter(data=data, disponivel=True)
+            if data == today:
+                qs_h = qs_h.filter(hora__gt=now_t)
+            horarios = qs_h.order_by("hora")
 
     if request.method == "POST":
         horario_id = request.POST.get("horario")
@@ -32,6 +42,17 @@ def agendar(request):
         with transaction.atomic():
             # trava o horário pra evitar duplicar
             horario = Horario.objects.select_for_update().get(id=horario_id)
+            # não permite agendar horário no passado
+            today = timezone.localdate()
+            now_t = timezone.localtime().time()
+            if horario.data < today or (horario.data == today and horario.hora <= now_t):
+                return render(request, "agendar.html", {
+                    "servicos": servicos,
+                    "planos": planos,
+                    "horarios": horarios,
+                    "erro": "Esse horário já passou. Escolha outro.",
+                })
+
             if not horario.disponivel:
                 return render(request, "agendar.html", {
                     "servicos": servicos,
