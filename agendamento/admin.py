@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.db.models import Sum
 
 from smartwash.admin_site import admin_site
+from django.template.response import TemplateResponse
 from .models import (
     Agendamento,
     Assinatura,
@@ -94,12 +95,22 @@ class AgendamentoAdmin(admin.ModelAdmin):
 
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context=extra_context)
+
+        # Se foi POST e o admin decidiu redirecionar, não existe context_data
+        if not isinstance(response, TemplateResponse):
+            return response
+
+        # A partir daqui é seguro mexer no contexto
         try:
-            qs = response.context_data["cl"].queryset
-            total = qs.filter(status_pagamento=Agendamento.StatusPagamento.PAGO).aggregate(total=Sum("total"))["total"] or 0
+            context = response.context_data
         except Exception:
-            total = 0
-        response.context_data["total_ganhos"] = total
+            return response
+
+        # ---- seu cálculo aqui ----
+        # total = ...
+        context["total_ganhos"] = total
+        # context["outros_campos"] = ...
+
         return response
 
 
