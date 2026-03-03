@@ -266,9 +266,11 @@
       const input = chip.querySelector('input');
       const sync = () => chip.classList.toggle('active', input.checked);
       chip.addEventListener('click', (e) => {
-        if (e.target.tagName.toLowerCase() !== 'input') {
-          input.checked = !input.checked;
-        }
+        // Como o chip é um <label>, o browser alterna o checkbox automaticamente.
+        // Se também alternarmos via JS, ele "desmarca" na sequência e parece que não funciona.
+        // Então prevenimos o default e controlamos 100% via JS.
+        e.preventDefault();
+        input.checked = !input.checked;
         sync();
         recalc();
       });
