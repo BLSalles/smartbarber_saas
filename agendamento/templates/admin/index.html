@@ -1,0 +1,336 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .sw-wrap { max-width: 1400px; }
+    .sw-grid { display:grid; grid-template-columns: 1fr; gap:16px; }
+    @media (min-width: 1100px){ .sw-grid { grid-template-columns: 2fr 1fr; } }
+
+    .sw-card {
+      border: 1px solid var(--hairline-color, #e5e7eb);
+      border-radius: 14px;
+      background: var(--body-bg);
+      box-shadow: 0 1px 0 rgba(0,0,0,.02);
+    }
+    .sw-card .hd {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--hairline-color, #e5e7eb);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap: wrap;
+    }
+    .sw-card .bd { padding: 14px 16px; }
+
+    .sw-kpis { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
+    @media (min-width: 800px){ .sw-kpis { grid-template-columns: repeat(6, minmax(0,1fr)); } }
+
+    .sw-kpi {
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--hairline-color, #e5e7eb);
+      background: rgba(0,0,0,.02);
+    }
+    .sw-kpi .label { color: #64748b; font-size: 12px; }
+    .sw-kpi .value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+
+    table.sw-table { width:100%; border-collapse: collapse; }
+    table.sw-table th, table.sw-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--hairline-color, #e5e7eb);
+      vertical-align: middle;
+    }
+    table.sw-table th {
+      text-align:left;
+      color:#64748b;
+      font-weight:600;
+      font-size:12px;
+      white-space: nowrap;
+    }
+    .sw-muted { color:#64748b; font-size:12px; }
+
+    .sw-badges { display:flex; gap:8px; flex-wrap:wrap; }
+    .sw-badge {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border:1px solid var(--hairline-color, #e5e7eb);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      text-decoration:none;
+      background: rgba(0,0,0,.02);
+    }
+    .sw-badge:hover { filter: brightness(0.98); }
+
+    .sw-form { display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+    .sw-form label { display:block; font-size:12px; color:#64748b; margin-bottom:4px; }
+    .sw-form input, .sw-form select {
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid var(--hairline-color, #e5e7eb);
+      background: var(--body-bg);
+      min-width: 180px;
+    }
+    .sw-form .btn {
+      padding:9px 12px;
+      border-radius:10px;
+      border:1px solid var(--hairline-color, #e5e7eb);
+      background: #0f172a;
+      color:#fff;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      height: 38px;
+    }
+    .sw-form .btn.secondary { background: transparent; color: inherit; }
+
+    .sw-section { display:grid; grid-template-columns: 1fr; gap:16px; }
+    @media (min-width: 900px){ .sw-section { grid-template-columns: 1fr 1fr; } }
+
+    .sw-table a { text-decoration: none; }
+    .sw-table a:hover { text-decoration: underline; }
+  </style>
+{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="sw-wrap">
+
+  <div class="sw-card" style="margin-bottom:16px;">
+    <div class="hd">
+      <div>
+        <div style="font-size:18px; font-weight:900;">Barbearia · Operação & Financeiro</div>
+        <div class="sw-muted">Filtros rápidos + visão do dia + resultados do período</div>
+      </div>
+
+      <div class="sw-badges">
+        <a class="sw-badge" href="?de={{ today|date:'Y-m-d' }}&ate={{ today|date:'Y-m-d' }}"><i class="bi bi-sun"></i> Hoje</a>
+        <a class="sw-badge" href="?de={{ tomorrow|date:'Y-m-d' }}&ate={{ tomorrow|date:'Y-m-d' }}"><i class="bi bi-calendar2-day"></i> Amanhã</a>
+        <a class="sw-badge" href="?de={{ today|date:'Y-m-d' }}&ate={{ week_end|date:'Y-m-d' }}"><i class="bi bi-calendar-week"></i> Próx. 7 dias</a>
+        <a class="sw-badge" href="?"><i class="bi bi-x-circle"></i> Limpar</a>
+      </div>
+    </div>
+
+    <div class="bd">
+      <form method="get" class="sw-form">
+        <div>
+          <label>De</label>
+          <input type="date" name="de" value="{{ f_de|default_if_none:'' }}">
+        </div>
+        <div>
+          <label>Até</label>
+          <input type="date" name="ate" value="{{ f_ate|default_if_none:'' }}">
+        </div>
+        <div>
+          <label>Serviço</label>
+          <select name="servico">
+            <option value="">Todos</option>
+            {% for s in servicos %}
+              {% with sid=s.id|stringformat:"s" %}
+                <option value="{{ s.id }}" {% if f_servico|stringformat:"s" == sid %}selected{% endif %}>{{ s.nome }}</option>
+              {% endwith %}
+            {% endfor %}
+          </select>
+        </div>
+        <div style="flex:1; min-width:240px;">
+          <label>Busca (nome/whats/cpf/email)</label>
+          <input type="text" name="q" placeholder="Ex: Bruno / 11999999999" value="{{ f_q|default_if_none:'' }}" style="width:100%; min-width:240px;">
+        </div>
+        <button class="btn" type="submit"><i class="bi bi-funnel"></i> Aplicar</button>
+        <a class="btn secondary" href="?"><i class="bi bi-eraser"></i> Limpar</a>
+      </form>
+    </div>
+  </div>
+
+  <div class="sw-kpis" style="margin-bottom:16px;">
+    <div class="sw-kpi">
+      <div class="label">Agendamentos (filtro)</div>
+      <div class="value">{{ total_agendamentos|default:0 }}</div>
+    </div>
+    <div class="sw-kpi">
+      <div class="label">Receita paga (filtro)</div>
+      <div class="value">R$ {{ total_faturamento|default:0|floatformat:2 }}</div>
+    </div>
+    <div class="sw-kpi">
+      <div class="label">Receita pendente</div>
+      <div class="value">R$ {{ total_pendente|default:0|floatformat:2 }}</div>
+    </div>
+    <div class="sw-kpi">
+      <div class="label">Despesas (filtro)</div>
+      <div class="value">R$ {{ total_despesas|default:0|floatformat:2 }}</div>
+    </div>
+    <div class="sw-kpi">
+      <div class="label">Lucro (filtro)</div>
+      <div class="value">R$ {{ lucro_periodo|default:0|floatformat:2 }}</div>
+    </div>
+    <div class="sw-kpi">
+      <div class="label">Assinaturas ativas</div>
+      <div class="value">{{ assinaturas_ativas|default:0 }}</div>
+    </div>
+  </div>
+
+  <div class="sw-grid">
+
+    <div class="sw-card">
+      <div class="hd">
+        <div style="font-weight:900;">Agenda por dia</div>
+        <div class="sw-muted">Hoje / amanhã / próximos 7 dias</div>
+      </div>
+      <div class="bd">
+        <div class="sw-section">
+          <div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:10px; flex-wrap:wrap;">
+              <div style="font-weight:900;"><i class="bi bi-sun"></i> Hoje ({{ today|date:"d/m/Y" }})</div>
+              <a class="sw-badge" href="{% url 'admin:agendamento_agendamento_changelist' %}?horario__data__exact={{ today|date:'Y-m-d' }}">Abrir lista</a>
+            </div>
+            <table class="sw-table">
+              <thead><tr><th>Hora</th><th>Cliente</th><th>Serviços</th><th>Status</th><th>Total</th></tr></thead>
+              <tbody>
+                {% for a in agenda_hoje %}
+                  <tr>
+                    <td>{{ a.horario.hora|time:"H:i" }}</td>
+                    <td>
+                      <a href="{% url 'admin:agendamento_agendamento_change' a.id %}">{{ a.nome }}</a>
+                      <div class="sw-muted">{{ a.whatsapp }}</div>
+                    </td>
+                    <td class="sw-muted">
+                      {% for s in a.servicos.all %}
+                        {{ s.nome }}{% if not forloop.last %}, {% endif %}
+                      {% empty %}
+                        —
+                      {% endfor %}
+                      {% if a.plano_mensal %}<div class="sw-muted">Plano: {{ a.plano_mensal.nome }}</div>{% endif %}
+                    </td>
+                    <td>{{ a.status_pagamento }}</td>
+                    <td>R$ {{ a.total|floatformat:2 }}</td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="5" class="sw-muted">Nenhum agendamento para hoje.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:10px; flex-wrap:wrap;">
+              <div style="font-weight:900;"><i class="bi bi-calendar2-day"></i> Amanhã ({{ tomorrow|date:"d/m/Y" }})</div>
+              <a class="sw-badge" href="{% url 'admin:agendamento_agendamento_changelist' %}?horario__data__exact={{ tomorrow|date:'Y-m-d' }}">Abrir lista</a>
+            </div>
+            <table class="sw-table">
+              <thead><tr><th>Hora</th><th>Cliente</th><th>Serviços</th><th>Status</th><th>Total</th></tr></thead>
+              <tbody>
+                {% for a in agenda_amanha %}
+                  <tr>
+                    <td>{{ a.horario.hora|time:"H:i" }}</td>
+                    <td>
+                      <a href="{% url 'admin:agendamento_agendamento_change' a.id %}">{{ a.nome }}</a>
+                      <div class="sw-muted">{{ a.whatsapp }}</div>
+                    </td>
+                    <td class="sw-muted">
+                      {% for s in a.servicos.all %}{{ s.nome }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+                      {% if a.plano_mensal %}<div class="sw-muted">Plano: {{ a.plano_mensal.nome }}</div>{% endif %}
+                    </td>
+                    <td>{{ a.status_pagamento }}</td>
+                    <td>R$ {{ a.total|floatformat:2 }}</td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="5" class="sw-muted">Nenhum agendamento para amanhã.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:10px; flex-wrap:wrap;">
+            <div style="font-weight:900;"><i class="bi bi-calendar-week"></i> Próximos 7 dias</div>
+            <a class="sw-badge" href="{% url 'admin:agendamento_agendamento_changelist' %}">Ver tudo</a>
+          </div>
+          <table class="sw-table">
+            <thead><tr><th>Data</th><th>Hora</th><th>Cliente</th><th>Serviços</th><th>Total</th></tr></thead>
+            <tbody>
+              {% for a in agenda_prox7 %}
+                <tr>
+                  <td>{{ a.horario.data|date:"d/m" }}</td>
+                  <td>{{ a.horario.hora|time:"H:i" }}</td>
+                  <td><a href="{% url 'admin:agendamento_agendamento_change' a.id %}">{{ a.nome }}</a></td>
+                  <td class="sw-muted">
+                    {% for s in a.servicos.all %}{{ s.nome }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+                    {% if a.plano_mensal %}<div class="sw-muted">Plano: {{ a.plano_mensal.nome }}</div>{% endif %}
+                  </td>
+                  <td>R$ {{ a.total|floatformat:2 }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" class="sw-muted">Nenhum agendamento nos próximos 7 dias.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="sw-card">
+      <div class="hd">
+        <div style="font-weight:900;">Receita por dia</div>
+        <div class="sw-muted">Somente pagamentos com status "PAGO"</div>
+      </div>
+      <div class="bd">
+        <canvas id="chart" height="220"></canvas>
+        <div class="sw-muted" style="margin-top:10px;">
+          Período: {% if chart_start and chart_end %}{{ chart_start|date:"d/m" }} → {{ chart_end|date:"d/m" }}{% else %}—{% endif %}
+        </div>
+
+        <hr>
+
+        <div style="font-weight:900; margin-bottom:10px;">Últimos agendamentos (filtro)</div>
+        <table class="sw-table">
+          <thead><tr><th>Quando</th><th>Cliente</th><th>Total</th></tr></thead>
+          <tbody>
+            {% for a in recent_agendamentos %}
+              <tr>
+                <td class="sw-muted">{{ a.horario.data|date:"d/m" }} {{ a.horario.hora|time:"H:i" }}</td>
+                <td><a href="{% url 'admin:agendamento_agendamento_change' a.id %}">{{ a.nome }}</a></td>
+                <td>R$ {{ a.total|floatformat:2 }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3" class="sw-muted">Sem itens.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <div class="sw-muted" style="margin-top:10px;">
+          Atalhos: <a href="{% url 'admin:agendamento_servico_changelist' %}">Serviços</a> · <a href="{% url 'admin:agendamento_planomensal_changelist' %}">Planos</a> · <a href="{% url 'admin:agendamento_despesa_changelist' %}">Despesas</a> · <a href="{% url 'admin:agendamento_mensagem_changelist' %}">Mensagens</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const labels = {{ chart_labels|safe }};
+  const totals = {{ chart_totals|safe }};
+  const ctx = document.getElementById('chart');
+  new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Receita (R$)', data: totals, tension: 0.25 }] },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+</script>
+{% endblock %}
